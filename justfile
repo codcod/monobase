@@ -39,6 +39,6 @@ clean:
     rm -rf dist
     find . -name __pycache__ -type d -exec rm -rf {} +
 
-# Mirror the GHA workflow (ci.yml): lint + format-check + type-check + test
+# Lint + format-check + type-check + test (ci.yml also runs `uv build`)
 [group('ci')]
 ci: lint test

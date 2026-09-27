@@ -24,7 +24,7 @@ branch and merge it to `main`.
 git checkout main && git pull
 git tag vX.Y.Z
 git push origin vX.Y.Z
-curl -sfI https://github.com/codcod/monolith-base/archive/refs/tags/vX.Y.Z.tar.gz
+curl -sfIL https://github.com/codcod/monolith-base/archive/refs/tags/vX.Y.Z.tar.gz
 ```
 
 ## Upgrading a consumer
