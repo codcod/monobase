@@ -1,6 +1,6 @@
 import logging
 
-from monolith_base.config import read_config, setup_logging
+from monobase.config import read_config, setup_logging
 
 
 def test_read_config_parses_toml(tmp_path):

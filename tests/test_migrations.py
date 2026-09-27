@@ -3,7 +3,7 @@ import contextlib
 import pytest
 import sqlalchemy as sa
 
-from monolith_base import migrations
+from monobase import migrations
 
 
 class FakeConnection:

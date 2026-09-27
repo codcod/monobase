@@ -1,17 +1,17 @@
 # Packaging
 
-`monolith-base` is one standalone package (not a workspace member), built
+`monobase` is one standalone package (not a workspace member), built
 with `hatchling`:
 
 ```
-pyproject.toml          name "monolith-base"; extras declared as they land
+pyproject.toml          name "monobase"; extras declared as they land
 justfile                install, test, lint, fmt, build, clean, ci
-src/monolith_base/      regular top-level package, ships py.typed
+src/monobase/           regular top-level package, ships py.typed
 tests/                  unit tests, no I/O (fake engine/connection/transaction)
 .github/workflows/ci.yml
 ```
 
-`monolith_base` is a regular package, not a namespace package, so it can't
+`monobase` is a regular package, not a namespace package, so it can't
 collide with a consumer's own namespace.
 
 ## Dependencies
