@@ -1,8 +1,9 @@
 # Releasing
 
 Releases are SemVer git tags `vX.Y.Z` on `main`. There is no package index:
-consumers pin the tag's GitHub archive URL. There is no release automation;
-this is a manual process.
+consumers pin the tag's GitHub archive URL. Pushing a tag runs
+[`release.yml`](.github/workflows/release.yml), which builds the package and
+opens a **draft** GitHub release; publishing it is a manual step.
 
 ## Cutting a release
 
@@ -27,6 +28,12 @@ git push origin vX.Y.Z
 curl -sfIL https://github.com/codcod/monobase/archive/refs/tags/vX.Y.Z.tar.gz
 ```
 
+**4. Publish the draft.** The workflow fails if the tag doesn't match
+`pyproject.toml`'s version or the changelog has no `[X.Y.Z]` section.
+Otherwise it creates a draft release with that section as notes and the
+wheel and sdist attached. Review it under GitHub → Releases and publish it
+(or `gh release edit vX.Y.Z --draft=false`).
+
 ## Upgrading a consumer
 
 Change the tag in the consumer's `[tool.uv.sources]` URL, then `uv lock` and
@@ -39,9 +46,7 @@ monobase = { url = "https://github.com/codcod/monobase/archive/refs/tags/vX.Y.Z.
 ## Validating locally before tagging
 
 ```sh
-just lint
-just test
-just build
+just ci
 ```
 
 ## Versioning

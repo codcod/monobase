@@ -39,6 +39,12 @@ clean:
     rm -rf dist
     find . -name __pycache__ -type d -exec rm -rf {} +
 
-# Lint + format-check + type-check + test (ci.yml also runs `uv build`)
+# Mirror ci.yml: locked sync, lint + format-check + type-check, test, build
 [group('ci')]
-ci: lint test
+ci:
+    uv sync --locked
+    uv run ruff check src tests
+    uv run ruff format --check src tests
+    uv run ty check src
+    uv run pytest -q
+    uv build
