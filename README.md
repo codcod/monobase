@@ -1,9 +1,9 @@
 # monobase
 
-Shared infrastructure library for codcod Python services: the Repository and
-Unit of Work bases (Percival & Gregory, *Architecture Patterns with Python*,
-on SQLAlchemy Core), an async engine factory, an Alembic online-migration
-runner, and a TOML config reader with logging setup.
+Shared infrastructure library featuring the Repository and Unit of Work bases
+(Percival & Gregory, *Architecture Patterns with Python*, on SQLAlchemy Core),
+an async engine factory, an Alembic online-migration runner, and a TOML config
+reader with logging setup.
 
 Depends on SQLAlchemy, asyncpg and Alembic only. Python 3.13+.
 
@@ -38,7 +38,6 @@ change, point the source at a sibling checkout
 
 ```python
 import typing as tp
-from typing import Self
 
 from monobase.unit_of_work import SqlAlchemyUnitOfWork
 
@@ -47,7 +46,7 @@ class OrderUnitOfWork(SqlAlchemyUnitOfWork):
     orders: SqlAlchemyOrderRepository  # your AbstractRepository[Order] subclass
 
     @tp.override
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self) -> tp.Self:
         _ = await super().__aenter__()
         self.orders = SqlAlchemyOrderRepository(self.connection)
         return self
@@ -60,16 +59,6 @@ from monobase.migrations import run_migrations_online
 
 run_migrations_online(metadata, dsn)
 ```
-
-## What goes in
-
-Code goes into `monobase` when at least two services need it, or it is
-already copied between repositories. Code one service needs stays in that
-service until a second one appears. Future additions (an aiohttp extra,
-outbox, metrics) land behind optional extras.
-
-The design lives in the `monolith-umbrella` workspace, at
-`development/monobase/design.md`.
 
 See [`PACKAGING.md`](PACKAGING.md), [`RELEASING.md`](RELEASING.md) and
 [`CHANGELOG.md`](CHANGELOG.md). MIT licensed.
