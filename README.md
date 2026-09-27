@@ -83,8 +83,9 @@ class OrderUnitOfWork(SqlAlchemyUnitOfWork):
 await uow.outbox.add([{"event_id": ..., "event_type": "OrderPlaced",
                        "destination": "risk", "payload": json.dumps(...)}])
 
-# at startup, with your own transport:
-asyncio.create_task(run_relay(engine, outbox, deliver))
+# at startup, with your own transport; keep the task referenced (the event
+# loop holds tasks only weakly) and cancel it on shutdown:
+relay = asyncio.create_task(run_relay(engine, outbox, deliver))
 ```
 
 `deliver(row)` receives the row as a dict. A row is marked published once
