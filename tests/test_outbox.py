@@ -44,6 +44,10 @@ class FakeConnection:
             return FakeResult(polled)
         return FakeResult([])
 
+    def select_params(self) -> list[dict]:
+        selects = [s for s, _ in self.executed if isinstance(s, Select)]
+        return [s.compile().params for s in selects]
+
     def updated_ids(self) -> list[int]:
         updates = [s for s, _ in self.executed if isinstance(s, Update)]
         return [s.compile().params["id_1"] for s in updates]
@@ -135,6 +139,20 @@ async def test_fetch_unpublished_filters_orders_and_returns_dicts(table):
     assert "ORDER BY orders.outbox.id" in sql
 
 
+async def test_fetch_unpublished_limit_and_exclude(table):
+    conn = FakeConnection(polls=[[], []])
+    repo = OutboxRepository(conn, table)  # type: ignore[arg-type]
+    await repo.fetch_unpublished(limit=5, exclude=[2, 3])
+    await repo.fetch_unpublished()
+
+    bounded, plain = (str(s.compile()) for s, _ in conn.executed)
+    assert "LIMIT" in bounded
+    assert "NOT IN" in bounded
+    assert conn.select_params()[0] == {"id_1": [2, 3], "param_1": 5}
+    assert "LIMIT" not in plain
+    assert "NOT IN" not in plain
+
+
 async def test_mark_published_updates_only_that_row(table):
     conn = FakeConnection()
     await OutboxRepository(conn, table).mark_published(7)  # type: ignore[arg-type]
@@ -177,3 +195,144 @@ async def test_relay_survives_a_failed_poll(table, stop_after_polls, caplog):
     assert "Outbox relay poll failed" in caplog.text
     assert delivered == [5]
     assert conn.updated_ids() == [5]
+
+
+async def test_relay_backs_off_a_failing_row(table, monkeypatch, caplog):
+    row = {"id": 2, **ROW}
+    conn = FakeConnection(polls=[[row], [], [row]])
+    clock = 0.0
+    sleeps = 0
+    monkeypatch.setattr(outbox, "_now", lambda: clock)
+
+    async def sleep(_: float) -> None:
+        nonlocal clock, sleeps
+        sleeps += 1
+        if sleeps == 2:
+            clock = 10.0  # past the first backoff
+        if sleeps == 3:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(outbox.asyncio, "sleep", sleep)
+
+    async def deliver(row):
+        raise RuntimeError("down")
+
+    with caplog.at_level(logging.WARNING), pytest.raises(asyncio.CancelledError):
+        await run_relay(FakeEngine(conn), table, deliver)  # type: ignore[arg-type]
+
+    first, backing_off, retried = conn.select_params()
+    assert "id_1" not in first
+    assert backing_off["id_1"] == [2]
+    assert "id_1" not in retried
+    failed = [r for r in caplog.records if "delivery failed for row 2" in r.message]
+    assert len(failed) == 2
+    assert failed[0].exc_info is not None
+    assert failed[1].exc_info is None
+    assert "attempt 2" in failed[1].message
+    assert conn.updated_ids() == []
+
+
+async def test_relay_times_out_a_hung_deliver(table, stop_after_polls, caplog):
+    conn = FakeConnection(polls=[[{"id": 1, **ROW}]])
+
+    async def deliver(row):
+        await asyncio.Event().wait()  # sleep is patched, so hang on an event
+
+    stop_after_polls(1)
+    relay = run_relay(FakeEngine(conn), table, deliver, deliver_timeout=0.01)  # type: ignore[arg-type]
+    with caplog.at_level(logging.ERROR), pytest.raises(asyncio.CancelledError):
+        await asyncio.wait_for(relay, 2)
+
+    assert "Outbox delivery failed for row 1" in caplog.text
+    assert conn.updated_ids() == []
+
+
+async def test_relay_logs_a_failed_mark_separately(table, stop_after_polls, caplog):
+    class FailingMark(FakeConnection):
+        async def execute(self, stmt, *params):
+            if isinstance(stmt, Update):
+                raise RuntimeError("db down")
+            return await super().execute(stmt, *params)
+
+    conn = FailingMark(polls=[[{"id": 1, **ROW}]])
+
+    async def deliver(row):
+        pass
+
+    stop_after_polls(1)
+    with caplog.at_level(logging.ERROR), pytest.raises(asyncio.CancelledError):
+        await run_relay(FakeEngine(conn), table, deliver)  # type: ignore[arg-type]
+
+    assert "Outbox mark_published failed for row 1" in caplog.text
+    assert "delivery failed" not in caplog.text
+
+
+async def test_relay_passes_batch_size_as_limit(table, stop_after_polls):
+    conn = FakeConnection(polls=[[]])
+
+    async def deliver(row):
+        pass
+
+    stop_after_polls(1)
+    with pytest.raises(asyncio.CancelledError):
+        await run_relay(FakeEngine(conn), table, deliver, batch_size=10)  # type: ignore[arg-type]
+
+    assert conn.select_params() == [{"param_1": 10}]
+
+
+async def test_relay_backoff_doubles_and_caps(table, monkeypatch):
+    row = {"id": 2, **ROW}
+    backoffs = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 60.0, 60.0]  # poll_interval=0.5
+    # each failure is followed by a poll just before its retry-at, then one at it
+    conn = FakeConnection(polls=[[row]] + [[], [row]] * len(backoffs))
+    ticks, t = [], 0.0
+    for backoff in backoffs:
+        t += backoff
+        ticks += [t - 0.01, t]
+    clock = 0.0
+    monkeypatch.setattr(outbox, "_now", lambda: clock)
+
+    async def sleep(_: float) -> None:
+        nonlocal clock
+        if not ticks:
+            raise asyncio.CancelledError
+        clock = ticks.pop(0)
+
+    monkeypatch.setattr(outbox.asyncio, "sleep", sleep)
+
+    async def deliver(row):
+        raise RuntimeError("down")
+
+    with pytest.raises(asyncio.CancelledError):
+        await run_relay(FakeEngine(conn), table, deliver)  # type: ignore[arg-type]
+
+    first, *rest = conn.select_params()
+    assert "id_1" not in first
+    assert [p.get("id_1") for p in rest] == [[2], None] * len(backoffs)
+
+
+async def test_relay_survives_a_row_that_never_succeeds(table, monkeypatch, caplog):
+    polls = 1100  # past attempt 1024, where 2**attempts overflows a float
+    conn = FakeConnection(polls=[[{"id": 1, **ROW}, {"id": 2, **ROW}]] * polls)
+    clock = 0.0
+    sleeps = 0
+    monkeypatch.setattr(outbox, "_now", lambda: clock)
+
+    async def sleep(_: float) -> None:
+        nonlocal clock, sleeps
+        clock += 100.0  # past the capped backoff
+        sleeps += 1
+        if sleeps == polls:
+            raise asyncio.CancelledError
+
+    monkeypatch.setattr(outbox.asyncio, "sleep", sleep)
+
+    async def deliver(row):
+        if row["id"] == 1:
+            raise RuntimeError("unknown destination")
+
+    with caplog.at_level(logging.ERROR), pytest.raises(asyncio.CancelledError):
+        await run_relay(FakeEngine(conn), table, deliver)  # type: ignore[arg-type]
+
+    assert "Outbox relay poll failed" not in caplog.text
+    assert conn.updated_ids() == [2] * polls
