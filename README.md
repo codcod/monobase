@@ -90,7 +90,10 @@ relay = asyncio.create_task(run_relay(engine, outbox, deliver))
 
 `deliver(row)` receives the row as a dict. A row is marked published once
 `deliver` returns; raise from `deliver` to leave a row unpublished (e.g. an
-unknown destination) and it is retried on the next poll.
+unknown destination) and it is retried with backoff (capped at 60 s). Each
+poll reads at most `batch_size=100` rows, and a `deliver` that runs past
+`deliver_timeout=30.0` seconds counts as failed. Run one relay per outbox
+table: a second relay on the same table delivers every row twice.
 
 See [`PACKAGING.md`](PACKAGING.md), [`RELEASING.md`](RELEASING.md) and
 [`CHANGELOG.md`](CHANGELOG.md). MIT licensed.

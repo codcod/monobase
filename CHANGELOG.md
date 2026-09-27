@@ -20,4 +20,7 @@ All notable changes to this project are documented here. Format follows
   `OutboxRepository` (bound by a service's unit of work) and
   `run_relay(engine, table, deliver)`, which delivers at-least-once: a row is
   marked published only after `deliver` returns, and a failing row doesn't
-  block the rest.
+  block the rest. It reads at most `batch_size` rows per poll, times out a
+  hung `deliver` after `deliver_timeout`, backs off a failing row in memory
+  (capped at 60 s), and logs a failed mark separately; run one relay per
+  outbox table.
