@@ -13,7 +13,7 @@ Extracted from monolith's `stelo-base`.
 ### Added
 
 - `monobase.repository`: `AbstractRepository[T]`.
-- `monobase.unit_of_work`: `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`.
+- `monobase.uow`: `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`.
 - `monobase.db`: `make_engine(dsn)`.
 - `monobase.migrations`: `run_migrations_online(target_metadata, dsn)`,
   keeping `alembic_version` in the target schema.

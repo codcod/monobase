@@ -12,7 +12,7 @@ Depends on SQLAlchemy, asyncpg and Alembic only. Python 3.13+.
 | Module | Contents |
 |---|---|
 | `monobase.repository` | `AbstractRepository[T]` (`add`, `get`) |
-| `monobase.unit_of_work` | `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`: leaving `async with uow:` without `commit()` rolls back |
+| `monobase.uow` | `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`: leaving `async with uow:` without `commit()` rolls back |
 | `monobase.db` | `make_engine(dsn) -> AsyncEngine` (`pool_pre_ping=True`) |
 | `monobase.migrations` | `run_migrations_online(target_metadata, dsn)`: creates the schema if missing and keeps `alembic_version` in it |
 | `monobase.config` | `read_config(path) -> dict[str, Any]`, `setup_logging(level)` (UTC, `WARNING` fallback) |
@@ -39,7 +39,7 @@ change, point the source at a sibling checkout
 ```python
 import typing as tp
 
-from monobase.unit_of_work import SqlAlchemyUnitOfWork
+from monobase.uow import SqlAlchemyUnitOfWork
 
 
 class OrderUnitOfWork(SqlAlchemyUnitOfWork):
