@@ -12,12 +12,12 @@ Extracted from monolith's `stelo-base`.
 
 ### Added
 
-- `monolith_base.repository`: `AbstractRepository[T]`.
-- `monolith_base.unit_of_work`: `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`.
-- `monolith_base.db`: `make_engine(dsn)`.
-- `monolith_base.migrations`: `run_migrations_online(target_metadata, dsn)`,
+- `monobase.repository`: `AbstractRepository[T]`.
+- `monobase.unit_of_work`: `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`.
+- `monobase.db`: `make_engine(dsn)`.
+- `monobase.migrations`: `run_migrations_online(target_metadata, dsn)`,
   keeping `alembic_version` in the target schema.
-- `monolith_base.config`: `read_config(path)`, `setup_logging(level)`.
+- `monobase.config`: `read_config(path)`, `setup_logging(level)`.
 
 ### Changed
 

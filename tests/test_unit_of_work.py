@@ -1,6 +1,6 @@
 import pytest
 
-from monolith_base.unit_of_work import AbstractUnitOfWork, SqlAlchemyUnitOfWork
+from monobase.unit_of_work import AbstractUnitOfWork, SqlAlchemyUnitOfWork
 
 
 class FakeTransaction:

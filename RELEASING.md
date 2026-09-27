@@ -24,7 +24,7 @@ branch and merge it to `main`.
 git checkout main && git pull
 git tag vX.Y.Z
 git push origin vX.Y.Z
-curl -sfIL https://github.com/codcod/monolith-base/archive/refs/tags/vX.Y.Z.tar.gz
+curl -sfIL https://github.com/codcod/monobase/archive/refs/tags/vX.Y.Z.tar.gz
 ```
 
 ## Upgrading a consumer
@@ -33,7 +33,7 @@ Change the tag in the consumer's `[tool.uv.sources]` URL, then `uv lock` and
 run its tests:
 
 ```toml
-monolith-base = { url = "https://github.com/codcod/monolith-base/archive/refs/tags/vX.Y.Z.tar.gz" }
+monobase = { url = "https://github.com/codcod/monobase/archive/refs/tags/vX.Y.Z.tar.gz" }
 ```
 
 ## Validating locally before tagging

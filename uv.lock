@@ -188,7 +188,7 @@ wheels = [
 ]
 
 [[package]]
-name = "monolith-base"
+name = "monobase"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

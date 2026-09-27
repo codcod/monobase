@@ -1,4 +1,4 @@
-# monolith-base is a library, not a deployable service — no run/docker/
+# monobase is a library, not a deployable service — no run/docker/
 # migrate targets here.
 
 # List available recipes (default when running `just` with no args)

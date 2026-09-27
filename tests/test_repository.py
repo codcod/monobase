@@ -1,6 +1,6 @@
 import pytest
 
-from monolith_base.repository import AbstractRepository
+from monobase.repository import AbstractRepository
 
 
 class InMemoryRepository(AbstractRepository[dict]):
