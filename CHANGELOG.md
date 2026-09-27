@@ -8,8 +8,6 @@ All notable changes to this project are documented here. Format follows
 
 ## [0.1.0] - 2026-09-27
 
-Extracted from monolith's `stelo-base`.
-
 ### Added
 
 - `monobase.repository`: `AbstractRepository[T]`.
@@ -23,12 +21,3 @@ Extracted from monolith's `stelo-base`.
   `run_relay(engine, table, deliver)`, which delivers at-least-once: a row is
   marked published only after `deliver` returns, and a failing row doesn't
   block the rest.
-
-### Changed
-
-Compared with `stelo-base`:
-
-- `setup_logging(level: str | None = "WARNING")` takes the level name instead
-  of a monolith `Config`; `None` or an unknown name falls back to `WARNING`.
-- `read_config(path) -> dict[str, Any]` no longer returns the monolith-typed
-  `dict[str, Config]`, and its parameter is renamed `fn` → `path`.
