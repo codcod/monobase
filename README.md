@@ -15,6 +15,7 @@ Depends on SQLAlchemy, asyncpg and Alembic only. Python 3.13+.
 | `monobase.uow` | `AbstractUnitOfWork`, `SqlAlchemyUnitOfWork`: leaving `async with uow:` without `commit()` rolls back |
 | `monobase.db` | `make_engine(dsn) -> AsyncEngine` (`pool_pre_ping=True`) |
 | `monobase.migrations` | `run_migrations_online(target_metadata, dsn)`: creates the schema if missing and keeps `alembic_version` in it |
+| `monobase.outbox` | `outbox_table(metadata, schema)`, `OutboxRepository`, `run_relay(engine, table, deliver)`: transactional outbox, at-least-once delivery |
 | `monobase.config` | `read_config(path) -> dict[str, Any]`, `setup_logging(level)` (UTC, `WARNING` fallback) |
 
 ## Depending on it
@@ -59,6 +60,36 @@ from monobase.migrations import run_migrations_online
 
 run_migrations_online(metadata, dsn)
 ```
+
+## Outbox
+
+Bind an `OutboxRepository` in your unit of work and add rows before
+`commit()`, so events commit with the state change:
+
+```python
+from monobase.outbox import OutboxRepository, outbox_table, run_relay
+
+outbox = outbox_table(metadata, "orders")
+
+
+class OrderUnitOfWork(SqlAlchemyUnitOfWork):
+    @tp.override
+    async def __aenter__(self) -> tp.Self:
+        _ = await super().__aenter__()
+        self.outbox = OutboxRepository(self.connection, outbox)
+        return self
+
+# inside `async with uow:`, before `await uow.commit()`:
+await uow.outbox.add([{"event_id": ..., "event_type": "OrderPlaced",
+                       "destination": "risk", "payload": json.dumps(...)}])
+
+# at startup, with your own transport:
+asyncio.create_task(run_relay(engine, outbox, deliver))
+```
+
+`deliver(row)` receives the row as a dict. A row is marked published once
+`deliver` returns; raise from `deliver` to leave a row unpublished (e.g. an
+unknown destination) and it is retried on the next poll.
 
 See [`PACKAGING.md`](PACKAGING.md), [`RELEASING.md`](RELEASING.md) and
 [`CHANGELOG.md`](CHANGELOG.md). MIT licensed.
