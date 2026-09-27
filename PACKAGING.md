@@ -8,7 +8,7 @@ pyproject.toml          name "monobase"; extras declared as they land
 justfile                install, test, lint, fmt, build, clean, ci
 src/monobase/           regular top-level package, ships py.typed
 tests/                  unit tests, no I/O (fake engine/connection/transaction)
-.github/workflows/ci.yml
+.github/workflows/ci.yml, release.yml
 ```
 
 `monobase` is a regular package, not a namespace package, so it can't
@@ -41,4 +41,6 @@ just build        # uv build → dist/*.whl and dist/*.tar.gz
 - **`ty`** for type-checking, scoped to `src/` — test doubles under `tests/`
   use loose fakes that aren't meant to type-check against the real classes.
 - **GitHub Actions** ([`ci.yml`](.github/workflows/ci.yml)) runs lint, tests
-  and the build on Python 3.13 and 3.14.
+  and the build on Python 3.13 and 3.14; `just ci` runs the same steps on the
+  local interpreter. [`release.yml`](.github/workflows/release.yml) drafts a
+  GitHub release on each `vX.Y.Z` tag.
