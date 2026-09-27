@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "monobase"
-version = "0.2.0"
+version = "0.1.0"
 description = "Shared persistence and config helpers for codcod Python services"
 readme = "README.md"
 license = "MIT"
